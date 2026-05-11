@@ -1,0 +1,40 @@
+# Eksempel-konfig for produksjonsserver med Nginx + Certbot.
+# Plasseres i /etc/nginx/sites-available/gvk og symlinkes til sites-enabled.
+# Kjør deretter: sudo certbot --nginx -d gvk.dittdomene.no
+
+server {
+    listen 80;
+    server_name gvk.dittdomene.no;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name gvk.dittdomene.no;
+
+    # Certbot fyller inn ssl_certificate / ssl_certificate_key
+    client_max_body_size 25M;
+
+    # Frontend (statisk build, eller proxy til Vite/Node)
+    location / {
+        proxy_pass http://127.0.0.1:5173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Opplastede bilder
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:8000;
+    }
+}
