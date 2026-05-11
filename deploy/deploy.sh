@@ -22,12 +22,17 @@ sudo -u gvk bash -c "
   .venv/bin/pip install -r requirements.txt
 "
 
-echo "[3/5] Bygg frontend (på dev-maskinen er bedre, men funker også her)"
+echo "[3/5] Bygg frontend (kjøres som vanlig bruker, ikke root)"
 if command -v npm >/dev/null 2>&1; then
-  pushd "$SRC/frontend" >/dev/null
-  npm ci
-  npm run build
-  popd >/dev/null
+  # Sørg for at $SRC eies av kalleren, ikke root – så neste npm-bygg uten sudo virker
+  REAL_USER="${SUDO_USER:-$(id -un)}"
+  chown -R "$REAL_USER":"$REAL_USER" "$SRC"
+  sudo -u "$REAL_USER" bash -c "
+    cd '$SRC/frontend'
+    rm -rf dist node_modules/.vite tsconfig.tsbuildinfo
+    npm ci
+    npm run build
+  "
   rsync -a --delete "$SRC/frontend/dist/" "$APP/frontend/"
 else
   echo "  (npm ikke installert – pre-bygg på dev-maskinen og rsync dist/ til $APP/frontend/)"
