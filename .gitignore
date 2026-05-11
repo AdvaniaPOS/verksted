@@ -40,3 +40,6 @@ backend/.env
 *.ppk
 id_rsa*
 id_ed25519*
+
+# Men frontend/.env.production er IKKE hemmelig – den setter bare API-URL
+!frontend/.env.production
