@@ -40,4 +40,4 @@ systemctl status --no-pager gvk-backend | head -n 10
 echo "[5/5] Reload nginx"
 nginx -t && systemctl reload nginx
 
-echo "OK – sjekk: curl -i http://127.0.0.1/api/health"
+echo "OK – sjekk: curl -i http://127.0.0.1:8010/api/health"
