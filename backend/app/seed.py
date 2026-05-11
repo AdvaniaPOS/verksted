@@ -47,7 +47,17 @@ def _apply_column_migrations() -> None:
 
 
 def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
+    # Race-safe ved flere uvicorn-workers: hver worker forsøker å lage
+    # tabellene samtidig. SQLAlchemy bruker som default checkfirst=True,
+    # men sjekken og CREATE skjer ikke atomisk – derfor svelger vi
+    # "already exists"-feilen som ufarlig.
+    from sqlalchemy.exc import OperationalError, ProgrammingError
+    try:
+        Base.metadata.create_all(bind=engine)
+    except (OperationalError, ProgrammingError) as e:
+        msg = str(e).lower()
+        if "already exists" not in msg:
+            raise
     _apply_column_migrations()
     db: Session = SessionLocal()
     try:
