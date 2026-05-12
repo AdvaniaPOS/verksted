@@ -32,9 +32,12 @@ function Section({ title, items }: { title: string; items: NavItem[] }) {
 export default function Layout() {
   const { user, logout, isImpersonating, endImpersonation } = useAuth();
   const isSuper = user?.role === "superadmin";
+  // Super-admin uten aktiv impersonering ser KUN plattform-innstillinger,
+  // ikke verksted/butikk for sin egen «system»-tenant.
+  const superAdminMode = isSuper && !isImpersonating;
   const t = user?.tenant;
-  const showWorkshop = !!t?.module_workshop;
-  const showShop = !!t?.module_shop;
+  const showWorkshop = !superAdminMode && !!t?.module_workshop;
+  const showShop = !superAdminMode && !!t?.module_shop;
 
   const workshop: NavItem[] = showWorkshop
     ? [
@@ -55,7 +58,9 @@ export default function Layout() {
     : [];
 
   const settings: NavItem[] = [];
-  if (user?.role === "admin" || user?.role === "superadmin") {
+  // Tenant-innstillinger (Susoft/printer) gir bare mening i tenant-kontekst,
+  // dvs. for en vanlig admin eller en super-admin som er logget inn på vegne av en tenant.
+  if (user?.role === "admin" || (isSuper && isImpersonating)) {
     settings.push({ to: "/admin", label: "Innstillinger", icon: "⚙" });
   }
   if (isSuper) {

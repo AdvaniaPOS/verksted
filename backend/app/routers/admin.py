@@ -31,6 +31,14 @@ def _require_admin(user: User) -> None:
         raise HTTPException(403, "Kun administrator har tilgang")
 
 
+def _require_super_context(user: User) -> None:
+    """Susoft-integrasjonen administreres av Susoft/Advania på vegne av tenant.
+    Tilgang krever at innlogget bruker faktisk er super-admin som har impersonert
+    seg inn på tenanten (JWT inneholder 'imp')."""
+    if not getattr(user, "_impersonator_id", None):
+        raise HTTPException(403, "Susoft-integrasjon administreres av Susoft-support")
+
+
 def _get_susoft(db: Session, tenant_id: int) -> Optional[SusoftConfig]:
     return db.query(SusoftConfig).filter(SusoftConfig.tenant_id == tenant_id).one_or_none()
 
@@ -43,6 +51,7 @@ def _get_printer(db: Session, tenant_id: int) -> Optional[PrinterConfig]:
 @router.get("/susoft", response_model=SusoftConfigOut)
 def get_susoft_config(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     _require_admin(user)
+    _require_super_context(user)
     cfg = _get_susoft(db, user.tenant_id)
     if not cfg:
         return SusoftConfigOut()
@@ -66,6 +75,7 @@ def update_susoft_config(
     user: User = Depends(get_current_user),
 ):
     _require_admin(user)
+    _require_super_context(user)
     cfg = _get_susoft(db, user.tenant_id)
     if not cfg:
         if not payload.password:
@@ -101,6 +111,7 @@ def update_susoft_config(
 @router.post("/susoft/test", response_model=SusoftTestResult)
 def test_susoft(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     _require_admin(user)
+    _require_super_context(user)
     cfg = _get_susoft(db, user.tenant_id)
     if not cfg:
         raise HTTPException(400, "Susoft-konfigurasjon mangler")

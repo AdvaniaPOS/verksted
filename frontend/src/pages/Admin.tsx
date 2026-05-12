@@ -4,14 +4,18 @@ import { api, parseUTC } from "../api";
 import { useAuth } from "../auth";
 
 export default function Admin() {
-  const { user } = useAuth();
-  if (user?.role !== "admin") {
+  const { user, isImpersonating } = useAuth();
+  const isSuper = user?.role === "superadmin";
+  if (user?.role !== "admin" && !(isSuper && isImpersonating)) {
     return <div className="card">Kun administrator har tilgang til denne siden.</div>;
   }
+  // Susoft-integrasjon administreres av Susoft/Advania (super-admin på vegne av tenant),
+  // ikke av tenant selv. Vanlige tenant-admins ser bare printer-innstillinger.
+  const canSeeSusoft = isSuper && isImpersonating;
   return (
     <div className="space-y-8 max-w-4xl">
       <h1 className="text-2xl font-bold text-slate-800">Administrasjon</h1>
-      <SusoftSection />
+      {canSeeSusoft && <SusoftSection />}
       <PrinterSection />
     </div>
   );
